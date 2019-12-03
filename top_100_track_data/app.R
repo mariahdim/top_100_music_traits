@@ -13,30 +13,36 @@ library(wordcloud)
 
 # Read the rds file containing the data analyses conducted
 
-top100_data <- read_rds("top100_data.rds")
+df <- read_rds("top100_data.rds")
 
 # Define UI for application. I applied the shinytheme "flatly" for a more
 # minimalistic and sleek design.
 
 ui <- fluidPage(theme = shinytheme("flatly"),
                 
-                navbarPage("Billboard Hot 100 Song Traits",
+                navbarPage("What it takes to be a Billboard Hot 100 Song",
                            
                            tabPanel("Overview",
                                     
-                                    h3("How frequently did each chord appear on the list?"),
+                                    h2("Objective"),
                                     
-                                    plotOutput("chord_freq"),
+                                    h4("The goal of this project is to determine what qualities encompass a Hot 100 song. I wanted to study how different track characteristics -- like song key, danceability, or energy -- changed over the decades. Using these observations, we might be able to figure out how to create the next Billboard Top 100 song!"),
+                                    
+                                    h2("The Data"),
+                                    
+                                    h4("This project used the Billboard Hot 100 charts dating back from 1960 until 2016."),
                                     
                                     br(),
                                     
-                                    h3("Most common word in the song lyrics"),
+                                    h2("Here are some quick snapshots:"),
+                                    
+                                    h4("Most common words in the lyrics of Billboard Hot 100 songs"),
                                     
                                     plotOutput("cloud"),
                                     
                                     br(),
                                     
-                                    h3("Artists with the most appearance on the Billboard Hot 100 since 1960"),
+                                    h4("Artists with the most appearance on the Billboard Hot 100 since 1960"),
                                     
                                     DT::dataTableOutput("artists"),
                                     
@@ -51,44 +57,44 @@ ui <- fluidPage(theme = shinytheme("flatly"),
                                                  
                                                  h3("Song Acousticness Trend from 1960 to 2016"),
                                                  
-                                                 h5("A confidence measure from 0.0 to 1.0 of whether the track is acoustic. 1.0 represents high confidence the track is acoustic."),
+                                                 h5("A rating of 1.0 indicates a higher probability that the track is acoustic."),
                                                  
-                                                 plotOutput("acoustic"),
+                                                 br(),
                                                  
-                                                 h4("COMMENT")
+                                                 plotOutput("acoustic")
+                                                 
                                                  ),
                                         
                                         tabPanel("Danceability",
                                                  
                                                  h3("Song Danceability Trend from 1960 to 2016"),
                                                  
-                                                 h5("Danceability describes how suitable a track is for dancing based on a combination of musical elements including tempo, rhythm stability, beat strength, and overall regularity. A value of 0.0 is least danceable and 1.0 is most danceable."),
+                                                 h5("Danceability describes how suitable a song is for dancing. The calculation is based on a combination of elements like tempo, rhythm stability, beat strength, and overall regularity. A value of 1.0 indicates songs that are most danceable."),
                                                  
-                                                 plotOutput("dance"),
+                                                 br(),
                                                  
-                                                 h4("COMMENT")
-                                                 ),
+                                                 plotOutput("dance")
+                                                 
+                                        ),
                                         
                                         tabPanel("Duration",
                                                  
                                                  h3("Average Song Duration from 1960 to 2016"),
                                                  
-                                                 h5("The duration of the track in milliseconds."),
+                                                 h5("Duration indicates how long the track is in milliseconds."),
                                                  
-                                                 plotOutput("duration"),
+                                                 plotOutput("duration")
                                                  
-                                                 h4("COMMENT")
                                                  ),
                                         
                                         tabPanel("Energy",
                                                  
                                                  h3("Song Energy Trend from 1960 to 2016"),
                                                  
-                                                 h5("Energy is a measure from 0.0 to 1.0 and represents a perceptual measure of intensity and activity. Typically, energetic tracks feel fast, loud, and noisy. For example, death metal has high energy, while a Bach prelude scores low on the scale. Perceptual features contributing to this attribute include dynamic range, perceived loudness, timbre, onset rate, and general entropy."),
+                                                 h5("Energy represents a perceptual measure of intensity and activity. The calculation is based on a combination of elements like dynamic range, perceived loudness, timbre, onset rate, and general entropy. A value of 1.0 indicates songs that are most energetic and feel fast, loud, and noisy (e.g., death metal)."),
                                                  
-                                                 plotOutput("energy"),
+                                                 plotOutput("energy")
                                                  
-                                                 h4("COMMENT")
                                                  ),
                                         
                                         tabPanel("Instrumentalness",
@@ -97,9 +103,8 @@ ui <- fluidPage(theme = shinytheme("flatly"),
                                                  
                                                  h5("Predicts whether a track contains no vocals. 'Ooh' and 'aah' sounds are treated as instrumental in this context. Rap or spoken word tracks are clearly 'vocal'. The closer the instrumentalness value is to 1.0, the greater likelihood the track contains no vocal content. Values above 0.5 are intended to represent instrumental tracks, but confidence is higher as the value approaches 1.0."),
                                                  
-                                                 plotOutput("instrument"),
+                                                 plotOutput("instrument")
                                                  
-                                                 h4("COMMENT")
                                                  ),
                                         
                                         tabPanel("Liveness",
@@ -108,9 +113,8 @@ ui <- fluidPage(theme = shinytheme("flatly"),
                                                  
                                                  h5("Detects the presence of an audience in the recording. Higher liveness values represent an increased probability that the track was performed live. A value above 0.8 provides strong likelihood that the track is live."),
                                                  
-                                                 plotOutput("live"),
+                                                 plotOutput("live")
                                                  
-                                                 h4("COMMENT")
                                                  ),
                                         
                                         tabPanel("Loudness",
@@ -119,9 +123,8 @@ ui <- fluidPage(theme = shinytheme("flatly"),
                                                  
                                                  h5("The overall loudness of a track in decibels (dB). Loudness values are averaged across the entire track and are useful for comparing relative loudness of tracks. Loudness is the quality of a sound that is the primary psychological correlate of physical strength (amplitude). Values typical range between -60 and 0 db."),
                                                  
-                                                 plotOutput("loud"),
+                                                 plotOutput("loud")
                                                  
-                                                 h4("COMMENT")
                                                  ),
                                         
                                         tabPanel("Speechiness",
@@ -130,9 +133,8 @@ ui <- fluidPage(theme = shinytheme("flatly"),
                                                  
                                                  h5("Speechiness detects the presence of spoken words in a track. The more exclusively speech-like the recording (e.g. talk show, audio book, poetry), the closer to 1.0 the attribute value. Values above 0.66 describe tracks that are probably made entirely of spoken words. Values between 0.33 and 0.66 describe tracks that may contain both music and speech, either in sections or layered, including such cases as rap music. Values below 0.33 most likely represent music and other non-speech-like tracks."),
                                                  
-                                                 plotOutput("speech"),
+                                                 plotOutput("speech")
                                                  
-                                                 h4("COMMENT")
                                                  ),
                                         
                                         tabPanel("Tempo",
@@ -141,9 +143,8 @@ ui <- fluidPage(theme = shinytheme("flatly"),
                                                  
                                                  h5("The overall estimated tempo of a track in beats per minute (BPM). In musical terminology, tempo is the speed or pace of a given piece and derives directly from the average beat duration."),
                                                  
-                                                 plotOutput("tempo"),
+                                                 plotOutput("tempo")
                                                  
-                                                 h4("COMMENT")
                                                  ),
                                         
                                         tabPanel("Valence",
@@ -152,9 +153,8 @@ ui <- fluidPage(theme = shinytheme("flatly"),
                                                  
                                                  h5("A measure from 0.0 to 1.0 describing the musical positiveness conveyed by a track. Tracks with high valence sound more positive (e.g. happy, cheerful, euphoric), while tracks with low valence sound more negative (e.g. sad, depressed, angry)."),
                                                  
-                                                 plotOutput("valence"),
+                                                 plotOutput("valence")
                                                  
-                                                 h4("COMMENT")
                                                  )
                                     )
                            ),
@@ -163,9 +163,9 @@ ui <- fluidPage(theme = shinytheme("flatly"),
                                     
                                     tabsetPanel(
                                         
-                                        tabPanel("Overall Trend",
+                                        tabPanel("By Song Key",
                                                  
-                                                 h3("Trends in Song Key Popularity"),
+                                                 h3("Yearly Trend in Song Key Popularity"),
                                                  
                                                  h5("This figure shows what proportion of the Top 100 list for a given year is the selected song key."),
                                                  
@@ -173,32 +173,38 @@ ui <- fluidPage(theme = shinytheme("flatly"),
                                                  
                                                  sidebarPanel(
                                                      
-                                                     selectInput("key", "Song Key:", unique(data$keys))
+                                                     selectInput("key", "Song Key:", unique(df$data$keys))
                                                      
                                                  ),
                                                  
                                                  mainPanel(
                                                      
-                                                     plotOutput("pop_key"),
+                                                     plotOutput("pop_key")
                                                      
-                                                     br()
                                                  ),
                                                  
                                                  br(),
                                                  
-                                                 h5("After looking at each individual song key, there appeared to be no strong trend indicating a shift in song key preference.")
+                                                 h5("After looking at each individual song key, there appeared to be no strong trend indicating a shift in song key preference. The C and G are the most popular song keys on the list.")
+                                                 
                                         ),
                                     
                                         tabPanel("Mode",
                                                  
                                                  h3("Major vs. Minor Key"),
                                                  
-                                                 h5("Mode indicates the modality (major or minor) of a track, the type of scale from which its melodic content is derived. Major is represented by 1 and minor is 0."),
+                                                 h5("Mode indicates the modality (major or minor) of a track, the type of scale from which its melodic content is derived."),
                                                  
-                                                 plotOutput("mode"),
+                                                 plotOutput("mode")
                                                  
-                                                 h4("COMMENT")
-                                                 )
+                                        ),
+                                        
+                                        tabPanel("Overall",
+                                                 
+                                                 h3("How frequently did each chord appear on the list?"),
+                                                 
+                                                 plotOutput("chord_freq")
+                                        )
                                     )
                            ),
                            
@@ -206,7 +212,7 @@ ui <- fluidPage(theme = shinytheme("flatly"),
                                     
                                     sidebarPanel(
                                         
-                                        h5("Traits"),
+                                        h3("Traits"),
                                         
                                         sliderInput("input_danceability", "Danceability", min = 0, max = 1, value = 0),
                                         sliderInput("input_energy", "Energy", min = 0, max = 1, value = 0),
@@ -251,19 +257,32 @@ ui <- fluidPage(theme = shinytheme("flatly"),
 server <- function(input, output) {
     
     output$acoustic <- renderPlot(
-        acousticness_plot
+        df$acoustic
     )
     
     output$artists <- DT::renderDataTable(
-        popular_artists, 
+        df$popular_artists, 
         colnames = c("Artist", "Frequency")
     )
     
     output$chord_freq <- renderPlot(
-        chord_freq_graph
+        df$chord_freq
     )
     
     output$cloud <- renderPlot({
+        
+        tidy_lyrics <- df$data %>%
+            select(title, artist_name, year, decade, lyrics) %>% 
+            unnest_tokens("word", lyrics) %>% 
+            anti_join(stop_words) %>% 
+            filter(!(word %in% c("chorus", "verse", "hook")))
+        
+        words <- tidy_lyrics %>%
+            #group_by(decade) %>% 
+            count(word) %>%
+            filter(n >= 150) %>% 
+            #arrange(decade) %>% 
+            arrange(-n)
         
         set.seed(10)
         wordcloud(words = words$word,
@@ -275,27 +294,25 @@ server <- function(input, output) {
     })
     
     output$dance <- renderPlot(
-        danceability_plot
+        df$dance
     )
     
     output$duration <- renderPlot(
-        duration_plot
+        df$duration
     )
     
     output$energy <- renderPlot(
-        energy_plot
+        df$energy
     )
     
     output$instrument <- renderPlot(
-        instrumentalness_plot
+        df$instrumental
     )
     
+    # Filter by the user selected song key
+    
     output$pop_key <- renderPlot({
-        data %>% 
-            group_by(year, mode, key) %>% 
-            count(keys) %>% 
-            group_by(year) %>% 
-            mutate(prop = n / sum(n)) %>%
+        df$key_pop_decades %>%
             filter(keys == input$key) %>% 
             ggplot(aes(x = year, y = prop)) +
             geom_col(fill = '#E24E42') +
@@ -307,32 +324,36 @@ server <- function(input, output) {
     })
     
     output$live <- renderPlot(
-        liveness_plot
+        df$live
     )
     
     output$loud <- renderPlot(
-        loudness_plot
+        df$loud
     )
     
     output$mode <- renderPlot(
-        mode
+        df$mode
     )
     
     output$speech <- renderPlot(
-        speechiness_plot
+        df$speech
     )
     
     output$tempo <- renderPlot(
-        tempo_plot
+        df$tempo
     )
     
     output$valence <- renderPlot(
-        valence_plot
+        df$valence
     )
     
-    
+    # This function finds the predicted chart rankings based on the model that I
+    # calculated. I will let the user modify the different traits.
     
     sum <- reactive({
+        
+        tidy_model <- df$tidy_model
+        
         round(tidy_model$`(Intercept)` + tidy_model$acousticness * input$input_acousticness + tidy_model$danceability * input$input_danceability + tidy_model$energy * input$input_energy + tidy_model$loudness * input$input_loudness + tidy_model$speechiness * input$input_speechiness + tidy_model$instrumentalness * input$input_instrumentalness + tidy_model$liveness * input$input_liveness + tidy_model$valence * input$input_valence)
     })
     
