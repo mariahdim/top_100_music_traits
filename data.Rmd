@@ -6,5 +6,439 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
+
+library(infer)
+library(fs)
+library(broom)
+library(tidyr)
+library(janitor)
+library(tidyverse)
+library(gt)
+library(tidytext)
+library(quanteda)
+library(wordcloud)
+
+# load the data from the Billboard Top 100 charts
+# From the source: "This is a data package, that contains data sets regarding songs on the Billboard Hot 100 list from 1960 to 2016. The data sets include the ranks for the given year, musical features of a lot of the songs and lyrics for several of the songs as well."
+library(billboard)
+
+# load a package that identifies the music chord of a song
+# "chorrrds is a package for R that scrapes the Cifraclub website to download and organize music chords. It can be considered a package for MIR (Music Information Retrieval), a broad area of computational music which extracts and processes music data, from the unstructured ones, as sound waves, to structured, like sheet music or chords"
+library(chorrrds)
+
 ```
+
+```{r load the data sets}
+
+# load all the data from the billboard dataset
+# "hot100" data includes the rank, song title, artist, and year
+hot100 <- billboard::wiki_hot_100s
+
+# "lyrics" contains song title, artist, year, and lyrics
+lyrics <- billboard::lyrics
+
+# "track_data" contains the year, artist name, artist id, explicit?, danceability, energy, key, loudness, mode, speechiness, acousticness, instrumentalness, liveness, valence, tempo, type, uri, track_href, analysis_url, duration_ms, and time signature
+# more info
+#\describe{
+#   \item{year}{year}
+#   \item{artist_name}{the artist of the song}
+#   \item{artist_id}{the Spotify ID of the artist}
+#   \item{explicit}{if the track is rated as explicit}
+#   \item{track_name}{the name of the track}
+#   \item{track_id}{the Spotify ID of the track}
+#   \item{danceability}{Danceability describes how suitable a track is for dancing based on a combination of musical elements including tempo, rhythm stability, beat strength, and overall regularity. A value of 0.0 is least danceable and 1.0 is most danceable.}
+#   \item{energy}{Energy is a measure from 0.0 to 1.0 and represents a perceptual measure of intensity and activity. Typically, energetic tracks feel fast, loud, and noisy. For example, death metal has high energy, while a Bach prelude scores low on the scale. Perceptual features contributing to this attribute include dynamic range, perceived loudness, timbre, onset rate, and general entropy.}
+#   \item{key}{The key the track is in. Integers map to pitches using standard Pitch Class notation. E.g. 0 = C, 1 = C#/Db, 2 = D, and so on.}
+#   \item{loudness}{The overall loudness of a track in decibels (dB). Loudness values are averaged across the entire track and are useful for comparing relative loudness of tracks. Loudness is the quality of a sound that is the primary psychological correlate of physical strength (amplitude). Values typical range between -60 and 0 db.}
+#   \item{mode}{Mode indicates the modality (major or minor) of a track, the type of scale from which its melodic content is derived. Major is represented by 1 and minor is 0.}
+#   \item{speechiness}{Speechiness detects the presence of spoken words in a track. The more exclusively speech-like the recording (e.g. talk show, audio book, poetry), the closer to 1.0 the attribute value. Values above 0.66 describe tracks that are probably made entirely of spoken words. Values between 0.33 and 0.66 describe tracks that may contain both music and speech, either in sections or layered, including such cases as rap music. Values below 0.33 most likely represent music and other non-speech-like tracks.}
+#   \item{acousticness}{A confidence measure from 0.0 to 1.0 of whether the track is acoustic. 1.0 represents high confidence the track is acoustic.}
+#   \item{instrumentalness}{Predicts whether a track contains no vocals. "Ooh" and "aah" sounds are treated as instrumental in this context. Rap or spoken word tracks are clearly "vocal". The closer the instrumentalness value is to 1.0, the greater likelihood the track contains no vocal content. Values above 0.5 are intended to represent instrumental tracks, but confidence is higher as the value approaches 1.0.}
+#   \item{liveness}{Detects the presence of an audience in the recording. Higher liveness values represent an increased probability that the track was performed live. A value above 0.8 provides strong likelihood that the track is live.}
+#   \item{valence}{A measure from 0.0 to 1.0 describing the musical positiveness conveyed by a track. Tracks with high valence sound more positive (e.g. happy, cheerful, euphoric), while tracks with low valence sound more negative (e.g. sad, depressed, angry).}
+#   \item{tempo}{The overall estimated tempo of a track in beats per minute (BPM). In musical terminology, tempo is the speed or pace of a given piece and derives directly from the average beat duration.}
+#   \item{type}{The object type: "audio_features"}
+#   \item{uri}{The Spotify URI for the track.}
+#   \item{track_href}{A link to the Web API endpoint providing full details of the track.}
+#   \item{analysis_url}{An HTTP URL to access the full audio analysis of this track. An access token is required to access this data.}
+#   \item{duration_ms}{The duration of the track in milliseconds.}
+#   \item{time_signature}{An estimated overall time signature of a track. The time signature (meter) is a notational convention to specify how many beats are in each bar (or measure).}
+#' }
+track_data <- billboard::spotify_track_data
+
+```
+
+```{r data}
+# I merged all three data sets -- track_data, hot100, and lyrics -- into one
+# data frame for easier data manipulations in the future. It did, however,
+# decrease the number of data points because not all songs in the hot100 list
+# have track data.
+
+df1 <- merge(hot100, track_data, by.x = c('title', 'year'), by.y = c('track_name', 'year'))
+x <- merge(df1, lyrics, by = c('title', 'year'))
+
+# Currently, the song's key is by number. Let's change it to something more
+# readable: 0 -> C. Save everything to the unfiltered dataframe, data
+
+data <- x %>%
+  mutate(year = as.numeric(year),
+         no = as.numeric(no)) %>% 
+  mutate(keys = ifelse(key == 0 & mode == 1, "C", 
+                       ifelse(key == 0 & mode == 0, "Cm",
+                              ifelse(key == 1 & mode == 1, "C#/Db",
+                                     ifelse(key == 1 & mode == 0, "C#m/Dbm",
+                                            ifelse(key == 2 & mode == 1, "D", 
+                                                   ifelse(key == 2 & mode == 0, "Dm",                        
+                                                          ifelse(key == 3 & mode == 1, "D#/Eb", 
+                                                                 ifelse(key == 3 & mode == 0, "D#m/Ebm",
+                                                                        ifelse(key == 4 & mode == 1, "E", 
+                                                                               ifelse(key == 4 & mode == 0, "Em",
+                                                                                      ifelse(key == 5 & mode == 1, "F", 
+                                                                                             ifelse(key == 5 & mode == 0, "Fm",
+                                                                                                    ifelse(key == 6 & mode == 1, "F#/Gb", 
+                                                                                                           ifelse(key == 6 & mode == 0, "F#m/Gbm",
+                                                                                                                  ifelse(key == 7 & mode == 1, "G", 
+                                                                                                                         ifelse(key == 7 & mode == 0, "Gm",
+                                                                                                                                ifelse(key == 8 & mode == 1, "G#/Ab", 
+                                                                                                                                       ifelse(key == 8 & mode == 1, "G#m/Abm",
+                                                                                                                                              ifelse(key == 9 & mode == 1, "A",
+                                                                                                                                                     ifelse(key == 9 & mode == 0, "Am",
+                                                                                                                                                            ifelse(key == 10 & mode == 1, "A#/Bb",
+                                                                                                                                                                   ifelse(key == 10 & mode == 0, "A#m/Bbm",
+                                                                                                                                                                          ifelse(key == 11 & mode == 1, "B", "Bm")))))))))))))))))))))))) %>% 
+  
+  # Add a column that counts the frequency of each song key
+  
+  group_by(mode, key) %>% 
+  mutate(count = n()) %>% 
+  ungroup() %>% 
+  
+  # add a column that shows the decades -- might be useful in future analyses
+  
+  mutate(decade = year - year %% 10) %>% 
+  
+  arrange(key, -mode)
+
+
+```
+
+## Data Characteristics
+
+```{r chord frequency}
+
+# Find the most common song key among all top 100 songs from 1960-2016. The
+# count has already been calculated in the data set above. Plot it for easier
+# visualization.
+
+chord_freq_graph <- data %>%  
+  select(keys, count) %>%
+  unique() %>% 
+  ggplot(aes(x = keys, y = count, fill = keys)) + 
+    geom_col() +
+    labs(
+      x = "",
+      y = "Frequency",
+      fill = "Song Key"
+    ) +
+    coord_flip() 
+
+```
+
+```{r popular artists}
+
+# Find the artist with the most songs in the top 100 list by counting the
+# frequency that they appear in the hot100 list, not the "data" dataframe. This
+# will be a more accurate count because it includes a list of all the songs and
+# not just ones with track data. Convert this to an easier to read gt table.
+# Show only artists that have been on the list at least 10 times.
+
+popular_artists <- hot100 %>% 
+  group_by(artist) %>% 
+  count() %>% 
+  arrange(desc(n))
+
+```
+
+```{r trends}
+
+# Find the average loudness within each year and plot how it changed over the years
+
+loudness_plot <- data %>% 
+  group_by(year) %>% 
+  summarise(avg = mean(loudness)) %>% 
+  ggplot(aes(x = year, y = avg)) +
+  geom_line(size = 1.25, color = '#E9B000') +
+  scale_x_continuous(breaks = seq(1960, 2020, 5)) + 
+  labs(
+    x = "Years",
+    y = "Loudness (db)"
+  ) +
+  theme_minimal()
+
+# Find the average song danceability within each year and plot how it changed
+# over the years
+
+danceability_plot <- data %>% 
+  group_by(year) %>% 
+  summarise(avg = mean(danceability)) %>% 
+  ggplot(aes(x = year, y = avg)) +
+  geom_line(size = 1.25, color = '#E9B000') +
+  scale_x_continuous(breaks = seq(1960, 2020, 5)) + 
+  labs(
+    x = "Years",
+    y = "Rating"
+  ) +
+  theme_minimal()
+
+# Find the average song energy within each year and plot how it changed over the years
+
+energy_plot <- data %>% 
+  group_by(year) %>% 
+  summarise(avg = mean(energy)) %>% 
+  ggplot(aes(x = year, y = avg)) +
+  geom_line(size = 1.25, color = '#E9B000') +
+  scale_x_continuous(breaks = seq(1960, 2020, 5)) + 
+  labs(
+    x = "Years",
+    y = "Rating"
+  ) +
+  theme_minimal()
+
+# Find the average speechiness within each year and plot how it changed over the years
+
+speechiness_plot <- data %>% 
+  group_by(year) %>% 
+  summarise(avg = mean(speechiness)) %>% 
+  ggplot(aes(x = year, y = avg)) +
+  geom_line(size = 1.25, color = '#E9B000') +
+  scale_x_continuous(breaks = seq(1960, 2020, 5)) + 
+  labs(
+    x = "Years",
+    y = "Rating"
+  ) +
+  theme_minimal()
+
+# Find the average acousticness of the songs within each year and plot how it
+# changed over the years
+
+acousticness_plot <- data %>% 
+  group_by(year) %>% 
+  summarise(avg = mean(acousticness)) %>% 
+  ggplot(aes(x = year, y = avg)) +
+  geom_line(size = 1.25, color = '#E9B000') +
+  scale_x_continuous(breaks = seq(1960, 2020, 5)) + 
+  labs(
+    x = "Years",
+    y = "Rating"
+  ) +
+  theme_minimal()
+
+# Find the average instrumentalness within each year and plot how it changed over the years
+
+instrumentalness_plot <- data %>% 
+  group_by(year) %>% 
+  summarise(avg = mean(instrumentalness)) %>% 
+  ggplot(aes(x = year, y = avg)) +
+  geom_line(size = 1.25, color = '#E9B000') +
+  scale_x_continuous(breaks = seq(1960, 2020, 5)) + 
+  labs(
+    x = "Years",
+    y = "Rating"
+  ) +
+  theme_minimal()
+
+# Find the average liveness within each year and plot how it changed over the years
+
+liveness_plot <- data %>% 
+  group_by(year) %>% 
+  summarise(avg = mean(liveness)) %>% 
+  ggplot(aes(x = year, y = avg)) +
+  geom_line(size = 1.25, color = '#E9B000') +
+  scale_x_continuous(breaks = seq(1960, 2020, 5)) + 
+  labs(
+    x = "Years",
+    y = "Rating"
+  ) +
+  theme_minimal()
+
+# Find the average valence within each year and plot how it changed over the years
+
+valence_plot <- data %>% 
+  group_by(year) %>% 
+  summarise(avg = mean(valence)) %>% 
+  ggplot(aes(x = year, y = avg)) +
+  geom_line(size = 1.25, color = '#E9B000') +
+  scale_x_continuous(breaks = seq(1960, 2020, 5)) + 
+  labs(
+    x = "Years",
+    y = "Rating"
+  ) +
+  theme_minimal()
+
+# Find the average tempo within each year and plot how it changed over the years
+
+tempo_plot <- data %>% 
+  group_by(year) %>% 
+  summarise(avg = mean(tempo)) %>% 
+  ggplot(aes(x = year, y = avg)) +
+  geom_line(size = 1.25, color = '#E9B000') +
+  scale_x_continuous(breaks = seq(1960, 2020, 5)) + 
+  labs(
+    x = "Years",
+    y = "Tempo (bpm)"
+  ) +
+  theme_minimal()
+
+# Find the average song duration within each year and plot how it changed over
+# the years
+
+duration_plot <- data %>% 
+  group_by(year) %>% 
+  summarise(avg = mean(duration_ms) / 1000 / 60) %>% 
+  ggplot(aes(x = year, y = avg)) +
+  geom_line(size = 1.25, color = '#E9B000') +
+  scale_x_continuous(breaks = seq(1960, 2020, 5)) + 
+  labs(
+    x = "Years",
+    y = "Length (min)"
+  ) +
+  theme_minimal()
+
+# Find the number of songs in major vs. minor key
+
+mode <- data %>% 
+  mutate(mode = as.factor(mode)) %>% 
+  group_by(mode, year) %>% 
+  count() %>%
+  group_by(year) %>% 
+  mutate(prop = n / sum(n) * 100) %>% 
+  ggplot(aes(year, prop, fill = mode)) +
+  geom_col() +
+  labs(y = "Percentage", x = "Year") +
+  theme_minimal() +
+  scale_fill_discrete(name = "Mode", labels = c("Minor", "Major"))
+
+```
+
+```{r wordcloud}
+
+# Create a wordcloud of the most common words in song lyrics. Separate the
+# lyrics strings into individual words to make it easier to count the frequency
+# of each word. I will also filter out the stopwords -- these are words like
+# "the" or "and" that are common words, but are not too informative.
+
+tidy_lyrics <- data %>%
+  select(title, artist_name, year, decade, lyrics) %>% 
+  unnest_tokens("word", lyrics) %>% 
+  anti_join(stop_words) %>% 
+  filter(!(word %in% c("chorus", "verse", "hook")))
+
+words <- tidy_lyrics %>%
+  #group_by(decade) %>% 
+  count(word) %>%
+  filter(n >= 150) %>% 
+  #arrange(decade) %>% 
+  arrange(-n)
+
+set.seed(10)
+
+cloud <- wordcloud(words = words$word,
+          freq = words$n,
+          random.order = FALSE,
+          colors = brewer.pal(n = 12, name = "Paired"))
+
+```
+
+
+### Data Manipulations
+
+```{r}
+
+# correlation of keys to popularity
+
+key_pop_decades <- data %>% 
+  group_by(decade, mode, key) %>% 
+  count(keys) %>% 
+  group_by(decade) %>% 
+  mutate(prop = n / sum(n)) %>% 
+  ggplot(aes(x = keys, y = prop, fill = keys)) +
+  geom_col() +
+  labs(
+    y = "Proportion",
+    x = "",
+    fill = "Song Key"
+  ) +
+  facet_wrap(~ decade) +
+  theme(axis.text.y = element_text(size = 6)) + 
+  coord_flip()
+
+```
+
+```{r}
+# correlation of keys to happy songs, danceable songs, sad songs
+# are slow tempo songs not "danceable"
+
+```
+
+```{r model}
+# find a model that combines all the different attributes to determine what
+# factors will result in a popular song
+
+y <- data %>% 
+  filter(year >= 2000) %>% 
+  mutate(duration_s = duration_ms / 1000)
+
+initial_model <- lm(formula = no ~ danceability + energy + loudness + speechiness + acousticness + instrumentalness + liveness + valence + tempo + duration_s, data = y)
+
+tidy_model <- initial_model %>% 
+  tidy() %>% 
+  select(term, estimate) %>% 
+  spread(key = term, value = estimate)
+
+glance_model <- initial_model %>% 
+  glance()
+
+```
+
+```{r save}
+
+# save the graphs from above into one rds file for easier shiny app reading
+
+graphs = list(acoustic = acousticness_plot,
+              chord_freq = chord_freq_graph,
+              dance = danceability_plot,
+              data = data,
+              duration = duration_plot,
+              energy = energy_plot,
+              instrumental = instrumentalness_plot,
+              pop_key = key_pop_decades,
+              live = liveness_plot,
+              loud = loudness_plot,
+              artists = popular_artists,
+              speech = speechiness_plot,
+              tempo = tempo_plot,
+              valence = valence_plot,
+              wordcloud = cloud,
+              mode = mode)
+
+saveRDS(graphs, "top_100_track_data/top100_data.rds")
+
+```
+
+```{r}
+data %>% 
+            group_by(year, mode, key) %>% 
+            count(keys) %>% 
+            group_by(year) %>% 
+            mutate(prop = n / sum(n)) %>%
+            filter(keys == "C") %>% 
+            ggplot(aes(x = year, y = prop)) +
+            geom_col(fill = '#E24E42') +
+            labs(
+                y = "Proportion",
+                x = "Year"
+            ) +
+            scale_x_continuous(breaks = seq(1960, 2020, 10))
+```
+
