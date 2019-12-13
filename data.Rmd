@@ -140,7 +140,7 @@ for (i in 1:nrow(hot100)) {
 
 ## Data Characteristics
 
-```{r wordcloud}
+```{r wordcloud, warning = FALSE}
 
 # Create a wordcloud of the most common words in song lyrics. Separate the
 # lyrics strings into individual words to make it easier to count the frequency
@@ -154,23 +154,15 @@ tidy_lyrics <- data %>%
   filter(!(word %in% c("chorus", "verse", "hook")))
 
 words <- tidy_lyrics %>%
-  #group_by(decade) %>% 
   count(word) %>%
-  filter(n >= 150) %>% 
-  #arrange(decade) %>% 
-  arrange(-n)
+  filter(!is.na(n)) %>% 
+  arrange(-n) %>% 
+  head(50)
 
-set.seed(10)
-
-cloud <- wordcloud(words = words$word,
-          freq = words$n,
-          random.order = FALSE,
-          colors = brewer.pal(n = 12, name = "Paired"))
-
-ggplot(words, aes(label = word, size = n)) +
-  geom_text_wordcloud(area_corr = TRUE) +
-  scale_size_area(max_size = 24) +
-  theme_minimal()
+cloud <- ggplot(words, aes(label = word, size = n, color = n)) +
+  geom_text_wordcloud(rm_outside = TRUE, shape = 'circle', eccentricity = 1) +
+  scale_size_area(max_size = 24) + 
+  scale_color_gradient(low = "#E9B000", high = "#008F95")
 
 ```
 
@@ -191,67 +183,13 @@ popular_artists <- hot100 %>%
 
 ```{r trends}
 
-# Find the average song danceability within each year and plot how it changed
-# over the years
-
-danceability_plot <- data %>% 
-  group_by(year) %>% 
-  summarise(avg = mean(danceability)) %>% 
-  ggplot(aes(x = year, y = avg)) +
-  geom_line(size = 1.25, color = '#E9B000') +
-  scale_x_continuous(breaks = seq(1960, 2020, 5)) + 
-  labs(
-    x = "Years",
-    y = "Rating"
-  ) +
-  theme_minimal()
-
-# Find the average song energy within each year and plot how it changed over the years
-
-energy_plot <- data %>% 
-  group_by(year) %>% 
-  summarise(avg = mean(energy)) %>% 
-  ggplot(aes(x = year, y = avg)) +
-  geom_line(size = 1.25, color = '#E9B000') +
-  scale_x_continuous(breaks = seq(1960, 2020, 5)) + 
-  labs(
-    x = "Years",
-    y = "Rating"
-  ) +
-  theme_minimal()
-
-# Find the average loudness within each year and plot how it changed over the years
-
-loudness_plot <- data %>% 
-  group_by(year) %>% 
-  summarise(avg = mean(loudness)) %>% 
-  ggplot(aes(x = year, y = avg)) +
-  geom_line(size = 1.25, color = '#E9B000') +
-  scale_x_continuous(breaks = seq(1960, 2020, 5)) + 
-  labs(
-    x = "Years",
-    y = "Loudness (db)"
-  ) +
-  theme_minimal()
-
-# Find the average speechiness within each year and plot how it changed over the years
-
-speechiness_plot <- data %>% 
-  group_by(year) %>% 
-  summarise(avg = mean(speechiness)) %>% 
-  ggplot(aes(x = year, y = avg)) +
-  geom_line(size = 1.25, color = '#E9B000') +
-  scale_x_continuous(breaks = seq(1960, 2020, 5)) + 
-  labs(
-    x = "Years",
-    y = "Rating"
-  ) +
-  theme_minimal()
+# The track data 
 
 # Find the average acousticness of the songs within each year and plot how it
 # changed over the years
 
 acousticness_plot <- data %>% 
+  filter(!is.na(acousticness)) %>% 
   group_by(year) %>% 
   summarise(avg = mean(acousticness)) %>% 
   ggplot(aes(x = year, y = avg)) +
@@ -261,13 +199,16 @@ acousticness_plot <- data %>%
     x = "Years",
     y = "Rating"
   ) +
-  theme_minimal()
+  theme_minimal() +
+  geom_smooth(method = "lm", color = "#008F95")
 
-# Find the average instrumentalness within each year and plot how it changed over the years
+# Find the average song danceability within each year and plot how it changed
+# over the years
 
-instrumentalness_plot <- data %>% 
+danceability_plot <- data %>% 
+  filter(!is.na(danceability)) %>% 
   group_by(year) %>% 
-  summarise(avg = mean(instrumentalness)) %>% 
+  summarise(avg = mean(danceability)) %>% 
   ggplot(aes(x = year, y = avg)) +
   geom_line(size = 1.25, color = '#E9B000') +
   scale_x_continuous(breaks = seq(1960, 2020, 5)) + 
@@ -275,54 +216,14 @@ instrumentalness_plot <- data %>%
     x = "Years",
     y = "Rating"
   ) +
-  theme_minimal()
-
-# Find the average liveness within each year and plot how it changed over the years
-
-liveness_plot <- data %>% 
-  group_by(year) %>% 
-  summarise(avg = mean(liveness)) %>% 
-  ggplot(aes(x = year, y = avg)) +
-  geom_line(size = 1.25, color = '#E9B000') +
-  scale_x_continuous(breaks = seq(1960, 2020, 5)) + 
-  labs(
-    x = "Years",
-    y = "Rating"
-  ) +
-  theme_minimal()
-
-# Find the average valence within each year and plot how it changed over the years
-
-valence_plot <- data %>% 
-  group_by(year) %>% 
-  summarise(avg = mean(valence)) %>% 
-  ggplot(aes(x = year, y = avg)) +
-  geom_line(size = 1.25, color = '#E9B000') +
-  scale_x_continuous(breaks = seq(1960, 2020, 5)) + 
-  labs(
-    x = "Years",
-    y = "Rating"
-  ) +
-  theme_minimal()
-
-# Find the average tempo within each year and plot how it changed over the years
-
-tempo_plot <- data %>% 
-  group_by(year) %>% 
-  summarise(avg = mean(tempo)) %>% 
-  ggplot(aes(x = year, y = avg)) +
-  geom_line(size = 1.25, color = '#E9B000') +
-  scale_x_continuous(breaks = seq(1960, 2020, 5)) + 
-  labs(
-    x = "Years",
-    y = "Tempo (bpm)"
-  ) +
-  theme_minimal()
+  theme_minimal() +
+  geom_smooth(method = "lm", color = "#008F95")
 
 # Find the average song duration within each year and plot how it changed over
 # the years
 
 duration_plot <- data %>% 
+  filter(!is.na(duration_ms)) %>% 
   group_by(year) %>% 
   summarise(avg = mean(duration_ms) / 1000 / 60) %>% 
   ggplot(aes(x = year, y = avg)) +
@@ -332,9 +233,175 @@ duration_plot <- data %>%
     x = "Years",
     y = "Length (min)"
   ) +
-  theme_minimal()
+  theme_minimal() +
+  geom_smooth(method = "lm", color = "#008F95")
 
-# Find the number of songs in major vs. minor key
+# Find the average song energy within each year and plot how it changed over the years
+
+energy_plot <- data %>% 
+  filter(!is.na(energy)) %>% 
+  group_by(year) %>% 
+  summarise(avg = mean(energy)) %>% 
+  ggplot(aes(x = year, y = avg)) +
+  geom_line(size = 1.25, color = '#E9B000') +
+  scale_x_continuous(breaks = seq(1960, 2020, 5)) + 
+  labs(
+    x = "Years",
+    y = "Rating"
+  ) +
+  theme_minimal() +
+  geom_smooth(method = "lm", color = "#008F95")
+
+# Find the average number of explicit songs withing each year and plot its trend over the years
+
+explicit_plot <- data %>% 
+  filter(!is.na(explicit)) %>% 
+  group_by(year) %>% 
+  count(explicit) %>% 
+  filter(explicit == TRUE) %>% 
+  ggplot(aes(x = year, y = n)) +
+  geom_line(size = 1.25, color = '#E9B000') +
+  scale_x_continuous(breaks = seq(1960, 2020, 5)) + 
+  labs(
+    x = "Years",
+    y = "Count"
+  ) +
+  theme_minimal() +
+  geom_smooth(method = "lm", color = "#008F95")
+
+# Find the average instrumentalness within each year and plot how it changed over the years
+
+instrumentalness_plot <- data %>% 
+  filter(!is.na(instrumentalness)) %>% 
+  group_by(year) %>% 
+  summarise(avg = mean(instrumentalness)) %>% 
+  ggplot(aes(x = year, y = avg)) +
+  geom_line(size = 1.25, color = '#E9B000') +
+  scale_x_continuous(breaks = seq(1960, 2020, 5)) + 
+  labs(
+    x = "Years",
+    y = "Rating"
+  ) +
+  theme_minimal() +
+  geom_smooth(method = "lm", color = "#008F95")
+
+# Find the average liveness within each year and plot how it changed over the years
+
+liveness_plot <- data %>% 
+  filter(!is.na(liveness)) %>% 
+  group_by(year) %>% 
+  summarise(avg = mean(liveness)) %>% 
+  ggplot(aes(x = year, y = avg)) +
+  geom_line(size = 1.25, color = '#E9B000') +
+  scale_x_continuous(breaks = seq(1960, 2020, 5)) + 
+  labs(
+    x = "Years",
+    y = "Rating"
+  ) +
+  theme_minimal() +
+  geom_smooth(method = "lm", color = "#008F95")
+
+# Find the average loudness within each year and plot how it changed over the years
+
+loudness_plot <- data %>% 
+  filter(!is.na(loudness)) %>% 
+  group_by(year) %>% 
+  summarise(avg = mean(loudness)) %>% 
+  ggplot(aes(x = year, y = avg)) +
+  geom_line(size = 1.25, color = '#E9B000') +
+  scale_x_continuous(breaks = seq(1960, 2020, 5)) + 
+  labs(
+    x = "Years",
+    y = "Loudness (db)"
+  ) +
+  theme_minimal() +
+  geom_smooth(method = "lm", color = "#008F95")
+
+# Find the average speechiness within each year and plot how it changed over the years
+
+speechiness_plot <- data %>% 
+  filter(!is.na(speechiness)) %>% 
+  group_by(year) %>% 
+  summarise(avg = mean(speechiness)) %>% 
+  ggplot(aes(x = year, y = avg)) +
+  geom_line(size = 1.25, color = '#E9B000') +
+  scale_x_continuous(breaks = seq(1960, 2020, 5)) + 
+  labs(
+    x = "Years",
+    y = "Rating"
+  ) +
+  theme_minimal() +
+  geom_smooth(method = "lm", color = "#008F95")
+
+# Find the average tempo within each year and plot how it changed over the years
+
+tempo_plot <- data %>% 
+  filter(!is.na(tempo)) %>%
+  group_by(year) %>% 
+  summarise(avg = mean(tempo)) %>% 
+  ggplot(aes(x = year, y = avg)) +
+  geom_line(size = 1.25, color = '#E9B000') +
+  scale_x_continuous(breaks = seq(1960, 2020, 5)) + 
+  labs(
+    x = "Years",
+    y = "Tempo (bpm)"
+  ) +
+  theme_minimal() +
+  geom_smooth(method = "lm", color = "#008F95")
+
+# Find the average valence within each year and plot how it changed over the years
+
+valence_plot <- data %>% 
+  filter(!is.na(valence)) %>%
+  group_by(year) %>% 
+  summarise(avg = mean(valence)) %>% 
+  ggplot(aes(x = year, y = avg)) +
+  geom_line(size = 1.25, color = '#E9B000') +
+  scale_x_continuous(breaks = seq(1960, 2020, 5)) + 
+  labs(
+    x = "Years",
+    y = "Rating"
+  ) +
+  theme_minimal() +
+  geom_smooth(method = "lm", color = "#008F95")
+
+```
+
+### Song Key
+
+```{r song key frequencies}
+
+# Correlation of keys to popularity I want to see if there are any major trends
+# in which song key is used the most frequently. Maybe there are some preference
+# changes in the song key choice?
+
+key_pop_decades <- data %>% 
+  group_by(year, mode, key) %>% 
+  count(keys) %>% 
+  group_by(year) %>% 
+  mutate(prop = n / sum(n))
+
+overall_key_freq <- data %>% 
+  filter(!is.na(keys)) %>% 
+  group_by(key, mode) %>% 
+  count(keys) %>% 
+  arrange(key, -mode) %>% 
+  ggplot(aes(keys, y = n, fill = keys)) +
+  geom_col() + 
+  coord_flip() +
+  labs(
+    y = "Count",
+    x = "",
+    fill = "Song Key"
+  )
+
+```
+
+```{r mode}
+
+# Find the number of songs in major vs. minor key. From experience, I know from
+# my little experience in music that "major" keys tend to be perceived as happy
+# and lively songs, while "minor" keys are tend to be perceived as sad songs.
 
 mode <- data %>% 
   mutate(mode = as.factor(mode)) %>% 
@@ -350,22 +417,9 @@ mode <- data %>%
 
 ```
 
-### Song Key
-
-```{r}
-
-# Correlation of keys to popularity
-# 
-
-key_pop_decades <- data %>% 
-  group_by(year, mode, key) %>% 
-  count(keys) %>% 
-  group_by(year) %>% 
-  mutate(prop = n / sum(n))
-
-```
 
 ```{r model}
+
 # find a model that combines all the different attributes to determine what
 # factors will result in a popular song
 
@@ -373,7 +427,7 @@ y <- data %>%
   filter(year >= 2010) %>% 
   mutate(duration_s = duration_ms / 1000)
 
-initial_model <- lm(formula = no ~ danceability + energy + loudness + speechiness + acousticness + instrumentalness + liveness + valence + tempo + duration_s, data = y)
+initial_model <- lm(formula = no ~ key + mode + danceability + energy + loudness + speechiness + acousticness + instrumentalness + liveness + valence + tempo + duration_s, data = y)
 
 tidy_model <- initial_model %>% 
   tidy() %>% 
@@ -390,24 +444,26 @@ glance_model <- initial_model %>%
 # save the graphs from above into one rds file for easier shiny app reading
 
 graphs = list(acoustic = acousticness_plot,
-              chord_freq = chord_freq_graph,
+              artists = popular_artists,
+              chord_freq = overall_key_freq,
               dance = danceability_plot,
               data = data,
               duration = duration_plot,
               energy = energy_plot,
+              explicit = explicit_plot,
               instrumental = instrumentalness_plot,
+              key_pop_decades = key_pop_decades,
               live = liveness_plot,
               loud = loudness_plot,
-              artists = popular_artists,
+              mode = mode,
               popular_artists = popular_artists,
               speech = speechiness_plot,
               tempo = tempo_plot,
+              tidy_model = tidy_model,
               valence = valence_plot,
-              wordcloud = cloud,
-              mode = mode,
-              key_pop_decades = key_pop_decades,
-              tidy_model = tidy_model)
+              wordcloud = cloud)
 
 saveRDS(graphs, "top_100_track_data/top100_data.rds")
+saveRDS(graphs, "top100_data.rds")
 
 ```

@@ -97,6 +97,16 @@ ui <- fluidPage(theme = shinytheme("flatly"),
                                                  
                                                  ),
                                         
+                                        tabPanel("Explicit",
+                                                 
+                                                 h3("Count of Explicit Songs from 1960 to 2016"),
+                                                 
+                                                 h5("Tracks are rated as explicit if they contain explicit lyrics."),
+                                                 
+                                                 plotOutput("energy")
+                                                 
+                                        ),
+                                        
                                         tabPanel("Instrumentalness",
                                                  
                                                  h3("Song Instrumentalness Trend from 1960 to 2016"),
@@ -214,6 +224,8 @@ ui <- fluidPage(theme = shinytheme("flatly"),
                                         
                                         h3("Traits"),
                                         
+                                        sliderInput("input_key", "Key", min = 0, max = 11, value = 0),
+                                        sliderInput("input_mode", "Major Key", min = 0, max = 1, value = 0, step = 1),
                                         sliderInput("input_danceability", "Danceability", min = 0, max = 1, value = 0),
                                         sliderInput("input_energy", "Energy", min = 0, max = 1, value = 0),
                                         sliderInput("input_loudness", "Loudness (dB)", min = -60, max = 0, value = 0),
@@ -270,27 +282,7 @@ server <- function(input, output) {
     )
     
     output$cloud <- renderPlot({
-        
-        tidy_lyrics <- df$data %>%
-            select(title, artist_name, year, decade, lyrics) %>% 
-            unnest_tokens("word", lyrics) %>% 
-            anti_join(stop_words) %>% 
-            filter(!(word %in% c("chorus", "verse", "hook")))
-        
-        words <- tidy_lyrics %>%
-            #group_by(decade) %>% 
-            count(word) %>%
-            filter(n >= 150) %>% 
-            #arrange(decade) %>% 
-            arrange(-n)
-        
-        set.seed(10)
-        wordcloud(words = words$word,
-                  freq = words$n,
-                  random.order = FALSE,
-                  min.freq = 250,
-                  rot.per = 0.35,
-                  colors = brewer.pal(n = 12, name = "Paired"))
+        df$wordcloud
     })
     
     output$dance <- renderPlot(
@@ -303,6 +295,10 @@ server <- function(input, output) {
     
     output$energy <- renderPlot(
         df$energy
+    )
+    
+    output$explicit <- renderPlot(
+        df$explicit
     )
     
     output$instrument <- renderPlot(
@@ -354,7 +350,7 @@ server <- function(input, output) {
         
         tidy_model <- df$tidy_model
         
-        round(tidy_model$`(Intercept)` + tidy_model$acousticness * input$input_acousticness + tidy_model$danceability * input$input_danceability + tidy_model$energy * input$input_energy + tidy_model$loudness * input$input_loudness + tidy_model$speechiness * input$input_speechiness + tidy_model$instrumentalness * input$input_instrumentalness + tidy_model$liveness * input$input_liveness + tidy_model$valence * input$input_valence)
+        round(tidy_model$`(Intercept)` + tidy_model$key * input$input_key + tidy_model$mode * input$input_mode + tidy_model$acousticness * input$input_acousticness + tidy_model$danceability * input$input_danceability + tidy_model$energy * input$input_energy + tidy_model$loudness * input$input_loudness + tidy_model$speechiness * input$input_speechiness + tidy_model$instrumentalness * input$input_instrumentalness + tidy_model$liveness * input$input_liveness + tidy_model$valence * input$input_valence)
     })
     
     output$predictor <- renderText({
