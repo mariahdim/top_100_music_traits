@@ -34,7 +34,9 @@ ui <- fluidPage(theme = shinytheme("flatly"),
                                     
                                     h4("This project used the Billboard Hot 100 charts dating back from 1960 until 2016. In a separate data set, there is information and scores on different song characteristics. In another data sets, there is information on the song lyrics as well. "),
                                     
-                                    br()
+                                    br(),
+                                    
+                                    tags$video(id="video2", type = "video/mp4", src = "SampleVideo_1280x720_1mb.mp4", controls = "controls")
                                     
                                     
                            ),

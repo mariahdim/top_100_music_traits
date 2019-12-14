@@ -420,7 +420,6 @@ mode <- data %>%
 
 ```
 
-
 ```{r model}
 
 # find a model that combines all the different attributes to determine what
@@ -442,31 +441,43 @@ glance_model <- initial_model %>%
 
 ```
 
+
+## Data Analyses for the write-up
+
+```{r analyses}
+
+
+
+
+```
+
+# Save the data!
+
 ```{r save}
 
 # save the graphs from above into one rds file for easier shiny app reading
-
-graphs = list(acoustic = acousticness_plot,
-              artists = popular_artists,
-              chord_freq = overall_key_freq,
-              dance = danceability_plot,
-              data = data,
-              duration = duration_plot,
-              energy = energy_plot,
-              explicit = explicit_plot,
-              instrumental = instrumentalness_plot,
-              key_pop_decades = key_pop_decades,
-              live = liveness_plot,
-              loud = loudness_plot,
-              mode = mode,
-              popular_artists = popular_artists,
-              speech = speechiness_plot,
-              tempo = tempo_plot,
-              tidy_model = tidy_model,
-              valence = valence_plot,
-              wordcloud = cloud)
-
-saveRDS(graphs, "top_100_track_data/top100_data.rds")
-saveRDS(graphs, "top100_data.rds")
+# 
+# graphs = list(acoustic = acousticness_plot,
+#               artists = popular_artists,
+#               chord_freq = overall_key_freq,
+#               dance = danceability_plot,
+#               data = data,
+#               duration = duration_plot,
+#               energy = energy_plot,
+#               explicit = explicit_plot,
+#               instrumental = instrumentalness_plot,
+#               key_pop_decades = key_pop_decades,
+#               live = liveness_plot,
+#               loud = loudness_plot,
+#               mode = mode,
+#               popular_artists = popular_artists,
+#               speech = speechiness_plot,
+#               tempo = tempo_plot,
+#               tidy_model = tidy_model,
+#               valence = valence_plot,
+#               wordcloud = cloud)
+# 
+# saveRDS(graphs, "top_100_track_data/top100_data.rds")
+# saveRDS(graphs, "top100_data.rds")
 
 ```
