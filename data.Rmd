@@ -159,9 +159,11 @@ words <- tidy_lyrics %>%
   arrange(-n) %>% 
   head(50)
 
+set.seed(10)
+
 cloud <- ggplot(words, aes(label = word, size = n, color = n)) +
   geom_text_wordcloud(rm_outside = TRUE, shape = 'circle', eccentricity = 1) +
-  scale_size_area(max_size = 24) + 
+  scale_size_area(max_size = 33) + 
   scale_color_gradient(low = "#E9B000", high = "#008F95")
 
 ```
@@ -404,6 +406,7 @@ overall_key_freq <- data %>%
 # and lively songs, while "minor" keys are tend to be perceived as sad songs.
 
 mode <- data %>% 
+  filter(!is.na(mode)) %>% 
   mutate(mode = as.factor(mode)) %>% 
   group_by(mode, year) %>% 
   count() %>%
